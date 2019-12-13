@@ -14,8 +14,6 @@ ERROR="[${RED}Error${NC}]"
 SUCCESS="[${GRN}Success${NC}]"
 FAILURE="[${RED}Error${NC}]"
 
-STATUS=0
-
 BRANCH=`(git rev-parse --abbrev-ref HEAD -- | grep -m1 "")`
 printf "${INFO} Starting rebase script.\n"
 printf  "${INFO} Rebasing %s onto the latest version of dev.\n" $BRANCH
@@ -47,7 +45,6 @@ if [[ $? -ne 0 ]]; then
 else
   printf "${INFO} Fetch successful.\n"
 fi
-
 
 printf "${INFO} Running hard git reset on origin/dev."
 git reset --hard origin/dev -q
