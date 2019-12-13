@@ -1,31 +1,89 @@
 #!/bin/bash
 
+# Console Colors
+RED='\033[0;31m'
+GRN='\033[0;32m'
+YLW='\033[0;33m'
+BLU='\033[1;34m'
+NC='\033[0m'
+
+#TAGS
+INFO="[${BLU}Info${NC}]"
+WARNING="[${YLW}Warning${NC}]"
+ERROR="[${RED}Error${NC}]"
+SUCCESS="[${GRN}Success${NC}]"
+FAILURE="[${RED}Error${NC}]"
+
+STATUS=0
+
 BRANCH=`(git rev-parse --abbrev-ref HEAD -- | grep -m1 "")`
-echo "Rebasing" $BRANCH
+printf "${INFO} Starting rebase script.\n"
+printf  "${INFO} Rebasing %s onto the latest version of dev.\n" $BRANCH
 
-until git checkout dev
-do
-	echo "Checking out..."
-done 
+printf "${INFO} Checking out the latest dev.\n"
+git checkout dev -q
 
-until git fetch
-do
-        echo "Fetching..."
-done
+if [[ $? -ne 0 ]]; then
+  printf "${ERROR} Checkout failed. Exiting.\n"
+  exit 1
+else
+  printf "${INFO} Checkout successful.\n"
+fi
 
-until git reset --hard origin/dev
-do
-	echo "Resetting..."
-done
+printf "${INFO} Running git fetch.\n"
+git fetch -q
 
-until git checkout $BRANCH
-do
-	echo "Getting old branch..."
-done
+if [[ $? -ne 0 ]]; then
+  printf "${ERROR} Fetch failed. Changing back to the previous branch.\n"
+  git checkout - -q
+  if [[ $? -ne 0 ]]; then
+    printf "${ERROR} Checkout failed. Exiting.\n"
+    exit 1
+  else
+    printf "${Error} Checkout successful.\n"
+  fi
+  printf "${ERROR} Exiting.\n"
+  exit 1
+else
+  printf "${INFO} Fetch successful.\n"
+fi
+
+
+printf "${INFO} Running hard git reset on origin/dev."
+git reset --hard origin/dev -q
+
+if [[ $? -ne 0 ]]; then
+  printf "${ERROR} Reset failed. Changing back to the previous branch.\n"
+  git checkout - -q
+  if [[ $? -ne 0 ]]; then
+    printf "${ERROR} Checkout failed. Exiting.\n"
+    exit 1
+  else
+    printf "${Error} Checkout successful.\n"
+  fi
+  printf "${ERROR} Exiting.\n"
+  exit 1
+else
+  printf "${INFO} Fetch successful.\n"
+fi
+
+printf "${INFO} Checking out %s.\n" $BRANCH
+git checkout $BRANCH -q
+
+if [[ $? -ne 0 ]]; then
+  printf "${ERROR} Checkout failed. Exiting.\n"
+  exit 1
+else
+  printf "${INFO} Checkout successful.\n"
+fi
 
 read -p "Are you sure you want to rebase this branch? " -n 1 -r
 echo    # (optional) move to a new line
+
 if [[ $REPLY =~ ^[Yy]$ ]]
 then
-	git rebase -i dev
+  printf "${SUCCESS} Have fun...\n"
+	git rebase -i dev -q
+else
+  printf "${INFO} Exiting...\n"
 fi

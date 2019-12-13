@@ -75,12 +75,11 @@ then
 	printf "${WARNING} There are some occurrences of 'debugger' in your modification.\n"
 fi
 
-if ! $PASS; then
-  printf "${FAILURE} Your commit contains files that should pass ESLint but do not. Please fix the ESLint errors and try again.\n"
-  exit 1
-else
-  printf "${SUCCESS} Commit Succeeded\n"
-fi
+# if ! $PASS; then
+#   printf "${FAILURE} Your commit contains files that should pass ESLint but do not. Please fix the ESLint errors and try again.\n"
+#   exit 1
+# else
+#   printf "${SUCCESS} Commit Succeeded\n"
+# fi
 
 exit 0;
-
