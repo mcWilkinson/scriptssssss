@@ -77,7 +77,7 @@ else
   printf "${INFO} Checkout successful.\n"
 fi
 
-read -p "Are you sure you want to rebase this branch? " -n 1 -r
+read -p "${WARNING} Are you sure you want to rebase this branch? " -n 1 -r
 echo    # (optional) move to a new line
 
 if [[ $REPLY =~ ^[Yy]$ ]]
