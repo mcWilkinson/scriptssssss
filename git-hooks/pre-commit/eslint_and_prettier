@@ -1,0 +1,86 @@
+#!/bin/sh
+# Redirect output to stderr.
+exec 1>&2
+
+# Console Colors
+RED='\033[0;31m'
+GRN='\033[0;32m'
+YLW='\033[0;33m'
+BLU='\033[1;34m'
+NC='\033[0m'
+
+#TAGS
+INFO="[${BLU}Info${NC}]"
+WARNING="[${YLW}Warning${NC}]"
+ERROR="[${RED}Error${NC}]"
+SUCCESS="[${GRN}Success${NC}]"
+FAILURE="[${RED}Error${NC}]"
+
+# Files
+ESLINT='/usr/local/bin/eslint'
+PRETTIER='/usr/local/bin/prettier'
+
+# Check for ESLINT
+if [[ -e "$ESLINT" ]]; then
+  printf "${SUCCESS} ESLint Found.\n"
+else
+  printf "${ERROR} ESLint not found. Please install ESlint before continuing.\n"
+  exit 1
+fi
+
+# Check for PRETTIER
+if [[ -e "$PRETTIER" ]]; then
+  printf "${SUCCESS} Prettier Found\n"
+else
+  printf "${ERROR} Prettier not found. Please install Prettier Gem before continuing.\n"
+  exit 1
+fi
+
+
+printf "${INFO} Running prettier (the gem)!...\n"
+
+FILES=$(git diff --cached --name-only --diff-filter=ACMR "*.js" "*.jsx" | sed 's| |\\ |g')
+[ -z "$FILES" ] && exit 0
+
+# Prettify all selected files
+echo "$FILES" | xargs prettier --write
+
+# Add back the modified/prettified files to staging
+echo "$FILES" | xargs git add
+
+PASS=true
+
+for FILE in $FILES
+do
+  "$ESLINT" "$FILE"
+
+  if [[ "$?" == 0 ]]; then
+    printf "${SUCCESS} ESLint Passed: $FILE"
+  else
+    printf "${FAILURE} ESLint Failed: $FILE"
+    PASS=false
+  fi
+done
+
+printf "\n"
+
+if test $(git diff --cached | grep "console.log" | wc -l) != 0
+then
+	printf "${WARNING} There are some occurrences of 'console.log' in your modification.\n"
+fi
+
+
+if test $(git diff --cached | grep "debugger" | wc -l) != 0
+then
+	printf "${WARNING} There are some occurrences of 'debugger' in your modification.\n"
+fi
+
+if ! $PASS; then
+  printf "${FAILURE} Your commit contains files that should pass ESLint but do not. Please fix the ESLint errors and try again.\n"
+  exit 1
+else
+  printf "${SUCCESS} Commit Succeeded\n"
+fi
+
+exit 0;
+
