@@ -17,14 +17,27 @@ SUCCESS="[${GRN}Success${NC}]"
 FAILURE="[${RED}Error${NC}]"
 
 # Files
-ESLINT='/usr/local/bin/eslint'
-PRETTIER='/usr/local/bin/prettier'
+RBENV="$(command -v rbenv)"
+ESLINT="$(command -v eslint)"
+PRETTIER="$(command -v prettier)"
+RUBOCOP="$(command -v rubocop)"
+
+# Set up PASSING value
+PASS=true
+
+# Check for rbenv (sorry rvm)
+if [[ -e "$RBENV" ]]; then
+  printf "${SUCCESS} RBEnv Found.\n"
+else
+  printf "${ERROR} RBEnv not found. Please install RBEnv before continuing.\n"
+  exit 1
+fi
 
 # Check for ESLINT
 if [[ -e "$ESLINT" ]]; then
   printf "${SUCCESS} ESLint Found.\n"
 else
-  printf "${ERROR} ESLint not found. Please install ESlint before continuing.\n"
+  printf "${ERROR} ESLint not found. Please install ESLint before continuing.\n"
   exit 1
 fi
 
@@ -32,54 +45,90 @@ fi
 if [[ -e "$PRETTIER" ]]; then
   printf "${SUCCESS} Prettier Found\n"
 else
-  printf "${ERROR} Prettier not found. Please install Prettier Gem before continuing.\n"
+  printf "${ERROR} Prettier not found. Please install Prettier  before continuing.\n"
   exit 1
 fi
 
+# Check for RUBOCOP
+if [[ -e "$PRETTIER" ]]; then
+  printf "${SUCCESS} Rubocop Found\n"
+else
+  printf "${ERROR} Rubocop not found. Please install Rubocop before continuing.\n"
+  exit 1
+fi
 
-printf "${INFO} Running prettier (the gem)!...\n"
+FILES=$(git diff --cached --name-only --diff-filter=ACMR "*.js" "*.jsx" "*.ts" "*.tsx" | sed 's| |\\ |g')
+if [[ -n "$FILES" ]]; then
 
-FILES=$(git diff --cached --name-only --diff-filter=ACMR "*.js" "*.jsx" | sed 's| |\\ |g')
-[ -z "$FILES" ] && exit 0
+  printf "${INFO} Running prettier...\n"
 
-# Prettify all selected files
-echo "$FILES" | xargs prettier --write
+  # Prettify all selected files
+  echo "$FILES" | xargs prettier --single-quote --write # --write
 
-# Add back the modified/prettified files to staging
-echo "$FILES" | xargs git add
+  # Add back the modified/prettified files to staging
+  # echo "$FILES" | xargs git add
 
-PASS=true
+  printf "${WARNING} Skipping eslint because I don't want to spend too much time getting it to work.\n"
 
-for FILE in $FILES
-do
-  "$ESLINT" "$FILE"
-
-  if [[ "$?" == 0 ]]; then
-    printf "${SUCCESS} ESLint Passed: $FILE"
-  else
-    printf "${FAILURE} ESLint Failed: $FILE"
-    PASS=false
-  fi
-done
+  # printf "${INFO} Running eslint...\n"
+  # for FILE in $FILES
+  # do
+  #   "$ESLINT" "$FILE"
+  #
+  #   if [[ "$?" == 0 ]]; then
+  #     printf "${SUCCESS} ESLint Passed: $FILE\n"
+  #   else
+  #     printf "${FAILURE} ESLint Failed: $FILE\n"
+  #     PASS=false
+  #   fi
+  # done
+else
+  printf "${INFO} No javascript files found. Skipping prettier and eslint...\n"
+fi
 
 printf "\n"
 
+FILES=$(git diff --cached --name-only --diff-filter=ACMR "*.rb" | sed 's| |\\ |g')
+if [[ -n "$FILES" ]]; then
+
+  # Fix formatting
+  echo "$FILES" | xargs rubocop -x
+
+  echo "$FILES" | xargs git add
+
+  # Run rubocop
+  for FILE in $FILES
+  do
+    "$RUBOCOP" "$FILE"
+
+    if [[ "$?" == 0 ]]; then
+      printf "${SUCCESS} Rubocop Passed: $FILE\n"
+    else
+      printf "${FAILURE} Rubocop Failed: $FILE\n"
+      PASS=false
+    fi
+  done
+else
+  printf "${INFO} No ruby files found. Skipping rubocop...\n"
+fi
+
+# Custom tests
 if test $(git diff --cached | grep "console.log" | wc -l) != 0
 then
 	printf "${WARNING} There are some occurrences of 'console.log' in your modification.\n"
 fi
-
 
 if test $(git diff --cached | grep "debugger" | wc -l) != 0
 then
 	printf "${WARNING} There are some occurrences of 'debugger' in your modification.\n"
 fi
 
-# if ! $PASS; then
-#   printf "${FAILURE} Your commit contains files that should pass ESLint but do not. Please fix the ESLint errors and try again.\n"
-#   exit 1
-# else
-#   printf "${SUCCESS} Commit Succeeded\n"
-# fi
+
+# Pass or fail?
+if ! $PASS; then
+  printf "${WARNING} Your commit contains files that didn't pass (╯°□°)╯︵ ┻━┻\n"
+else
+  printf "${SUCCESS} Excellent Job! ᕙ(°◡°)ᕗ\n"
+fi
 
 exit 0;

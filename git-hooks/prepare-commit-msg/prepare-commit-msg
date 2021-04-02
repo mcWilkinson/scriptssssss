@@ -1,0 +1,31 @@
+#!/bin/sh
+
+# Console Colors
+RED='\033[0;31m'
+GRN='\033[0;32m'
+YLW='\033[0;33m'
+BLU='\033[1;34m'
+NC='\033[0m'
+
+#TAGS
+INFO="[${BLU}Info${NC}]"
+WARNING="[${YLW}Warning${NC}]"
+ERROR="[${RED}Error${NC}]"
+SUCCESS="[${GRN}Success${NC}]"
+FAILURE="[${RED}Error${NC}]"
+
+COMMIT_MSG_FILE=$1
+COMMIT_SOURCE=$2
+SHA1=$3
+
+BRANCH=`(git rev-parse --abbrev-ref HEAD -- | grep -m1 "")`
+MESSAGE="$(cat $COMMIT_MSG_FILE)"
+
+REGEX="[a-z\-]+\/([A-Z]{1,4}-[0-9]{1,5}).*$"
+if [[ $BRANCH =~ $REGEX ]]; then
+  printf "${INFO} Detected ticket %s\n" "${BASH_REMATCH[1]}"
+  printf "[${BASH_REMATCH[1]}] ${MESSAGE}" > $COMMIT_MSG_FILE
+  printf "${INFO} Crafting new commit message: \"%s\"\n" "$(cat $COMMIT_MSG_FILE)"
+else
+  printf "${WARNING} Cannot prepend ticket number to commit. If you want that, try renaming your branch to include the jira ticket id.\n"
+fi
